@@ -50,7 +50,7 @@ func (c *City) TableName() string {
 type Trip struct {
 	//gorm.Model
 	ID             uint `gorm:"primaryKey"`
-	User_id        uint
+	UserId         uint
 	DepCityId      int
 	DepCity        City
 	Departure_date *time.Time
