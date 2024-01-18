@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"gorm.io/driver/postgres"
@@ -97,6 +98,23 @@ func findTrips(db *gorm.DB, dep_city_id, dep_date, arr_city_id, arr_date string,
 	return nil
 }
 
+func sortTrips(dep_city_id, arr_city_id string, trips_from, trips_to *[]Trip, result *[]FoundTrip) error {
+	did, _ := strconv.Atoi(dep_city_id)
+	aid, _ := strconv.Atoi(arr_city_id)
+	for _, tf := range *trips_from {
+		if tf.DepCityId == did && tf.ArrCityId == aid {
+			*result = append(*result, FoundTrip{Direct: true, FromTrip: tf})
+			continue
+		}
+		for _, tt := range *trips_to {
+			if tf.Departure_date.Compare(*tt.Departure_date) <= 0 && tf.UserId == tt.UserId {
+				*result = append(*result, FoundTrip{Direct: false, FromTrip: tf, ToTrip: tt})
+			}
+		}
+	}
+	return nil
+}
+
 func main() {
 	dsn := "host=localhost user=aerolist password=aerolist dbname=aerolist port=5432"
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
@@ -116,8 +134,10 @@ func main() {
 	if err != nil {
 		log.Println("Could not find trips")
 	}
+	var result []FoundTrip
+	sortTrips(dep_city_id, arr_city_id, &trips_from, &trips_to, &result)
 
-	str, err := json.MarshalIndent(&trips_to, "", "    ")
+	str, err := json.MarshalIndent(&result, "", "    ")
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
