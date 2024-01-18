@@ -10,6 +10,93 @@ import (
 	"gorm.io/gorm"
 )
 
+type FoundTrip struct {
+	Direct   bool
+	FromTrip Trip
+	ToTrip   Trip
+}
+
+func findTrips(db *gorm.DB, dep_city_id, dep_date, arr_city_id, arr_date string, trips_from, trips_to *[]Trip) error {
+	q := ""
+	args := make([]interface{}, 0)
+	if dep_city_id != "" {
+		q += "dep_city_id = ?"
+		args = append(args, dep_city_id)
+	}
+	if dep_date != "" {
+		if q != "" {
+			q += " AND "
+		}
+		q += "departure_date >= ?"
+		dep_date_time, err := time.Parse(time.DateOnly, dep_date)
+		if err != nil {
+			return err
+		}
+		args = append(args, dep_date_time)
+	}
+	var sub_q *gorm.DB
+	if q != "" {
+		sub_q = db.Model(&Trip{}).Distinct("user_id").Where(q, args...)
+	}
+	q = ""
+	args = make([]interface{}, 0)
+	if sub_q != nil {
+		q += "user_id IN (?)"
+		args = append(args, sub_q)
+	}
+	if arr_city_id != "" {
+		if q != "" {
+			q += " AND "
+		}
+		q += "arr_city_id = ?"
+		args = append(args, arr_city_id)
+	}
+	if arr_date != "" {
+		if q != "" {
+			q += " AND "
+		}
+		q += "departure_date <= ?"
+		arr_date_time, err := time.Parse(time.DateOnly, arr_date)
+		if err != nil {
+			return err
+		}
+		args = append(args, arr_date_time)
+	}
+	var trips_to_q *gorm.DB
+	if q != "" {
+		trips_to_q = db.Debug().Where(q, args...)
+	}
+	if trips_to_q != nil {
+		trips_to_q.Find(trips_to)
+	}
+	q = ""
+	args = make([]interface{}, 0)
+	if trips_to_q != nil {
+		q += "user_id IN (?)"
+		args = append(args, trips_to_q.Distinct("user_id"))
+	}
+	if dep_city_id != "" {
+		if q != "" {
+			q += " AND "
+		}
+		q += "dep_city_id = ?"
+		args = append(args, dep_city_id)
+	}
+	if dep_date != "" {
+		if q != "" {
+			q += " AND "
+		}
+		q += "departure_date >= ?"
+		dep_date_time, err := time.Parse(time.DateOnly, dep_date)
+		if err != nil {
+			return err
+		}
+		args = append(args, dep_date_time)
+	}
+	db.Debug().Where(q, args...).Find(trips_from)
+	return nil
+}
+
 func main() {
 	dsn := "host=localhost user=aerolist password=aerolist dbname=aerolist port=5432"
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
@@ -25,43 +112,10 @@ func main() {
 	dep_date := "2009-08-15"
 	arr_date := "2021-08-15"
 
-	var dep_date_time time.Time
-	if dep_date != "" {
-		dep_date_time, _ = time.Parse(time.DateOnly, dep_date)
+	err = findTrips(db, dep_city_id, dep_date, arr_city_id, arr_date, &trips_from, &trips_to)
+	if err != nil {
+		log.Println("Could not find trips")
 	}
-
-	var arr_date_time time.Time
-	if arr_date != "" {
-		arr_date_time, _ = time.Parse(time.DateOnly, arr_date)
-	}
-
-	var travellers_q *gorm.DB
-	if dep_city_id != "" && arr_city_id != "" {
-		travellers_q = db.Debug().Model(&Trip{}).Distinct("user_id").Where(
-			"dep_city_id = ? AND departure_date >= ?",
-			dep_city_id,
-			dep_date_time,
-		)
-	}
-
-	//var final_travellers_q *gorm.DB
-	final_travellers_q := db.Debug().Where(
-		"user_id IN (?) AND arr_city_id = ? AND departure_date <= ?",
-		travellers_q,
-		arr_city_id,
-		arr_date_time,
-	)
-	final_travellers_q.Find(&trips_to)
-	db.Debug().Where(
-		"user_id IN (?) AND dep_city_id = ? AND departure_date >= ?",
-		final_travellers_q.Distinct("user_id"),
-		dep_city_id,
-		dep_date_time,
-	).Find(&trips_from)
-
-	fmt.Printf("%+v\n", trips_to)
-	fmt.Println("____---_____", dep_date, travellers_q, final_travellers_q)
-	fmt.Printf("%+v\n", trips_from)
 
 	str, err := json.MarshalIndent(&trips_to, "", "    ")
 	if err != nil {
