@@ -49,16 +49,16 @@ func (c *City) TableName() string {
 
 type Trip struct {
 	//gorm.Model
-	ID             uint `gorm:"primaryKey"`
-	UserId         uint
-	DepCityId      int
-	DepCity        City
-	Departure_date *time.Time
-	ArrCityId      int
-	ArrCity        City
-	Text           string
-	Distance_km    float32
-	Is_verified    bool
+	ID        uint `gorm:"primaryKey"`
+	UserId    uint
+	DepCityId int
+	// DepCity        City
+	DepartureDate *time.Time
+	ArrCityId     int
+	// ArrCity        City
+	Text       string
+	DistanceKm float32
+	IsVerified bool
 }
 
 func (t *Trip) TableName() string {

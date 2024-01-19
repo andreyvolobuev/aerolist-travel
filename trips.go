@@ -9,8 +9,8 @@ import (
 
 type FoundTrip struct {
 	SingleDir bool
-	FromTrip  Trip
-	ToTrip    Trip
+	FromTrip  *Trip
+	ToTrip    *Trip
 }
 
 func findTrips(db *gorm.DB, dep_city_id, dep_date, arr_city_id, arr_date string, trips_from, trips_to *[]Trip) error {
@@ -123,7 +123,7 @@ func findTrips(db *gorm.DB, dep_city_id, dep_date, arr_city_id, arr_date string,
 		}
 		args = append(args, arr_date_time)
 	}
-	db.Debug().Where(q, args...).Order("user_id").Find(trips_from)
+	db.Debug().Where(q, args...).Not(trips_to_q).Order("user_id").Find(trips_from)
 	return nil
 }
 
@@ -137,40 +137,41 @@ func sortTrips(dep_city_id, arr_city_id string, trips_from, trips_to *[]Trip, re
 		if len(*trips_to) != 0 {
 			for _, tt := range *trips_to {
 				if tt.DepCityId == did && tt.ArrCityId == aid {
-					*result = append(*result, FoundTrip{SingleDir: false, FromTrip: tt})
+					*result = append(*result, FoundTrip{SingleDir: false, FromTrip: &tt})
+					continue
 				}
 				for _, tf := range *trips_from {
 					if tf.UserId > tt.UserId {
 						break
 					} else if tf.UserId > tt.UserId {
 						continue
-					} else if tf.Departure_date.Compare(*tt.Departure_date) <= 0 {
-						*result = append(*result, FoundTrip{SingleDir: false, FromTrip: tf, ToTrip: tt})
+					} else if tf.DepartureDate.Compare(*tt.DepartureDate) <= 0 {
+						*result = append(*result, FoundTrip{SingleDir: false, FromTrip: &tf, ToTrip: &tt})
 					}
 				}
 			}
 		} else {
 			for _, tf := range *trips_from {
 				if tf.DepCityId == did && tf.ArrCityId == aid {
-					*result = append(*result, FoundTrip{SingleDir: false, FromTrip: tf})
+					*result = append(*result, FoundTrip{SingleDir: false, FromTrip: &tf})
 				}
 			}
 		}
 	} else {
 		if did != 0 {
 			for _, tf := range *trips_from {
-				*result = append(*result, FoundTrip{SingleDir: true, FromTrip: tf})
+				*result = append(*result, FoundTrip{SingleDir: true, FromTrip: &tf})
 			}
 		} else if aid != 0 {
 			for _, tt := range *trips_to {
-				*result = append(*result, FoundTrip{SingleDir: true, ToTrip: tt})
+				*result = append(*result, FoundTrip{SingleDir: true, ToTrip: &tt})
 			}
 		} else {
 			for _, tf := range *trips_from {
-				*result = append(*result, FoundTrip{SingleDir: true, FromTrip: tf})
+				*result = append(*result, FoundTrip{SingleDir: true, FromTrip: &tf})
 			}
 			for _, tt := range *trips_to {
-				*result = append(*result, FoundTrip{SingleDir: true, ToTrip: tt})
+				*result = append(*result, FoundTrip{SingleDir: true, ToTrip: &tt})
 			}
 		}
 	}

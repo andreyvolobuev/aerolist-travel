@@ -4,12 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
-func main() {
+func HandleGetTrips(w http.ResponseWriter, r *http.Request) {
 	dsn := "host=localhost user=aerolist password=aerolist dbname=aerolist port=5432"
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
@@ -18,37 +19,40 @@ func main() {
 
 	var trips_to []Trip
 	var trips_from []Trip
+	var result []FoundTrip
 
-	dep_city_id := ""
-	dep_date := "2004-08-15"
-	arr_city_id := ""
-	arr_date := "2005-08-15"
+	dep_city := r.URL.Query().Get("dep_city")
+	dep_date := r.URL.Query().Get("dep_date")
+	arr_city := r.URL.Query().Get("arr_city")
+	arr_date := r.URL.Query().Get("arr_date")
 
-	err = findTrips(
+	findTrips(
 		db,
-		dep_city_id,
+		dep_city,
 		dep_date,
-		arr_city_id,
+		arr_city,
 		arr_date,
 		&trips_from,
 		&trips_to,
 	)
-	if err != nil {
-		log.Println("Could not find trips")
-	}
-
-	var result []FoundTrip
 	sortTrips(
-		dep_city_id,
-		arr_city_id,
+		dep_city,
+		arr_city,
 		&trips_from,
 		&trips_to,
 		&result,
 	)
-
 	str, err := json.MarshalIndent(&result, "", "    ")
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
-	fmt.Printf("%s\n", string(str))
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprint(w, string(str))
+}
+
+func main() {
+
+	http.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {})
+	http.HandleFunc("/", HandleGetTrips)
+	http.ListenAndServe("localhost:9000", nil)
 }
