@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"strings"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -20,13 +19,10 @@ func main() {
 	var trips_to []Trip
 	var trips_from []Trip
 
-	userQuery := "574.2004-08-15.1906.2008-08-15"
-	splittedQuery := strings.Split(userQuery, ".")
-
-	dep_city_id := splittedQuery[0]
-	arr_city_id := splittedQuery[2]
-	dep_date := splittedQuery[1]
-	arr_date := splittedQuery[3]
+	dep_city_id := ""
+	dep_date := "2004-08-15"
+	arr_city_id := ""
+	arr_date := "2005-08-15"
 
 	err = findTrips(
 		db,
@@ -42,16 +38,13 @@ func main() {
 	}
 
 	var result []FoundTrip
-	err = sortTrips(
+	sortTrips(
 		dep_city_id,
 		arr_city_id,
 		&trips_from,
 		&trips_to,
 		&result,
 	)
-	if err != nil {
-		log.Println("Could not sort trips")
-	}
 
 	str, err := json.MarshalIndent(&result, "", "    ")
 	if err != nil {
