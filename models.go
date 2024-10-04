@@ -47,6 +47,17 @@ func (c *City) TableName() string {
 	return "travel_city"
 }
 
+type Visibility int
+
+// Объявляем константы
+const (
+	VisibilityNone      Visibility = 0
+	VisibilityAuthor    Visibility = 1
+	VisibilityRequest   Visibility = 5
+	VisibilityFriends   Visibility = 10
+	VisibilityEverybody Visibility = 15
+)
+
 type Trip struct {
 	//gorm.Model
 	ID            uint       `gorm:"primaryKey" json:"id"`
@@ -57,6 +68,9 @@ type Trip struct {
 	Text          string     `json:"text"`
 	DistanceKm    float32    `json:"distanceKm"`
 	IsVerified    bool       `json:"isVerified"`
+	DateEdited    *time.Time `json:"dateEdited"`
+	Available     Visibility `json:"available"`
+	DateCreated   *time.Time `json:"dateCreated"`
 }
 
 func (t *Trip) TableName() string {

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"strconv"
 	"time"
 
@@ -185,6 +184,25 @@ func sortTrips(query FindTripQuery, trips_from, trips_to *[]Trip, result *[]Foun
 	}
 }
 
-func createTrip(db *gorm.DB) {
-	fmt.Println("ADADSADS")
+func createTrip(db *gorm.DB, trip *Trip) error {
+	currentTime := time.Now()
+
+	trip.DateEdited = &currentTime
+	trip.DateCreated = &currentTime
+
+	result := db.Model(&Trip{}).Create(&trip)
+	return result.Error
+}
+
+func updateTrip(db *gorm.DB, trip *Trip) error {
+	currentTime := time.Now()
+	trip.DateEdited = &currentTime
+
+	result := db.Save(trip)
+	return result.Error
+}
+
+func deleteTrip(db *gorm.DB, trip *Trip) error {
+	result := db.Delete(&Trip{}, trip.ID)
+	return result.Error
 }

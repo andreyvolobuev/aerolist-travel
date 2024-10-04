@@ -1,97 +1,19 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
-	"log"
 	"net/http"
 
-	"github.com/gorilla/schema"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
+	"github.com/gorilla/mux"
 )
-
-const (
-	METHOD_NOT_ALLOWED = "[%s] METHOD IS NOT ALLOWED!"
-
-	// headers
-	CONTENT_TYPE     = "Content-Type"
-	APPLICATION_JSON = "application/json"
-)
-
-var decoder = schema.NewDecoder()
-
-func getDB() *gorm.DB {
-	dsn := "host=localhost user=aerolist password=aerolist dbname=aerolist port=5432"
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
-	if err != nil {
-		panic("failed to connect database")
-	}
-	return db
-}
-
-func handleGet(w http.ResponseWriter, r *http.Request) {
-	db := getDB()
-
-	var trips_to []Trip
-	var trips_from []Trip
-	var result []FoundTrip
-	var query FindTripQuery
-
-	err := decoder.Decode(&query, r.URL.Query())
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	findTrips(
-		db,
-		query,
-		&trips_from,
-		&trips_to,
-	)
-	sortTrips(
-		query,
-		&trips_from,
-		&trips_to,
-		&result,
-	)
-
-	str, err := json.MarshalIndent(&result, "", "    ")
-	if err != nil {
-		log.Fatalf(err.Error())
-	}
-	fmt.Fprint(w, string(str))
-}
-
-func handlePost(w http.ResponseWriter, r *http.Request) {
-	db := getDB()
-
-	createTrip(db)
-}
-
-func handleDelete(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "{\"status\": \"delete_ok\"}")
-}
-
-func handleHTTP(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set(CONTENT_TYPE, APPLICATION_JSON)
-
-	switch r.Method {
-	case http.MethodPost:
-		handlePost(w, r)
-	case http.MethodGet:
-		handleGet(w, r)
-	case http.MethodDelete:
-		handleDelete(w, r)
-	default:
-		log.Printf(METHOD_NOT_ALLOWED, r.Method)
-		w.WriteHeader(http.StatusMethodNotAllowed)
-	}
-}
 
 func main() {
-	http.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {})
-	http.HandleFunc("/", handleHTTP)
+	r := mux.NewRouter()
+
+	r.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {})
+	r.HandleFunc("/{id}/", handleDetailData)
+	r.HandleFunc("/{id}", handleDetailData)
+	r.HandleFunc("/", handleListData)
+
+	http.Handle("/", r)
 	http.ListenAndServe("localhost:9999", nil)
 }
