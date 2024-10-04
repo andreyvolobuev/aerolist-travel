@@ -7,36 +7,43 @@ import (
 	"gorm.io/gorm"
 )
 
-type FoundTrip struct {
-	SingleDir bool
-	FromTrip  *Trip
-	ToTrip    *Trip
+type FindTripQuery struct {
+	DepCity string `schema:"dep_city"`
+	DepDate string `schema:"dep_date"`
+	ArrCity string `schema:"arr_city"`
+	ArrDate string `scheme:"arr_date"`
 }
 
-func findTrips(db *gorm.DB, dep_city_id, dep_date, arr_city_id, arr_date string, trips_from, trips_to *[]Trip) error {
+type FoundTrip struct {
+	SingleDir bool  `json:"singleDir"`
+	FromTrip  *Trip `json:"fromTrip"`
+	ToTrip    *Trip `json:"toTrip"`
+}
+
+func findTrips(db *gorm.DB, query FindTripQuery, trips_from, trips_to *[]Trip) error {
 	q := ""
 	args := make([]interface{}, 0)
-	if dep_city_id != "" {
+	if query.DepCity != "" {
 		q += "dep_city_id = ?"
-		args = append(args, dep_city_id)
+		args = append(args, query.DepCity)
 	}
-	if dep_date != "" {
+	if query.DepDate != "" {
 		if q != "" {
 			q += " AND "
 		}
 		q += "departure_date >= ?"
-		dep_date_time, err := time.Parse(time.DateOnly, dep_date)
+		dep_date_time, err := time.Parse(time.DateOnly, query.DepDate)
 		if err != nil {
 			return err
 		}
 		args = append(args, dep_date_time)
 	}
-	if arr_date != "" {
+	if query.ArrDate != "" {
 		if q != "" {
 			q += " AND "
 		}
 		q += "departure_date <= ?"
-		arr_date_time, err := time.Parse(time.DateOnly, arr_date)
+		arr_date_time, err := time.Parse(time.DateOnly, query.ArrDate)
 		if err != nil {
 			return err
 		}
@@ -52,30 +59,30 @@ func findTrips(db *gorm.DB, dep_city_id, dep_date, arr_city_id, arr_date string,
 		q += "user_id IN (?)"
 		args = append(args, sub_q)
 	}
-	if arr_city_id != "" {
+	if query.ArrCity != "" {
 		if q != "" {
 			q += " AND "
 		}
 		q += "arr_city_id = ?"
-		args = append(args, arr_city_id)
+		args = append(args, query.ArrCity)
 	}
-	if arr_date != "" {
+	if query.ArrDate != "" {
 		if q != "" {
 			q += " AND "
 		}
 		q += "departure_date <= ?"
-		arr_date_time, err := time.Parse(time.DateOnly, arr_date)
+		arr_date_time, err := time.Parse(time.DateOnly, query.ArrDate)
 		if err != nil {
 			return err
 		}
 		args = append(args, arr_date_time)
 	}
-	if dep_date != "" {
+	if query.DepDate != "" {
 		if q != "" {
 			q += " AND "
 		}
 		q += "departure_date >= ?"
-		dep_date_time, err := time.Parse(time.DateOnly, dep_date)
+		dep_date_time, err := time.Parse(time.DateOnly, query.DepDate)
 		if err != nil {
 			return err
 		}
@@ -94,30 +101,30 @@ func findTrips(db *gorm.DB, dep_city_id, dep_date, arr_city_id, arr_date string,
 		q += "user_id IN (?)"
 		args = append(args, trips_to_q.Distinct("user_id"))
 	}
-	if dep_city_id != "" {
+	if query.DepCity != "" {
 		if q != "" {
 			q += " AND "
 		}
 		q += "dep_city_id = ?"
-		args = append(args, dep_city_id)
+		args = append(args, query.DepCity)
 	}
-	if dep_date != "" {
+	if query.DepDate != "" {
 		if q != "" {
 			q += " AND "
 		}
 		q += "departure_date >= ?"
-		dep_date_time, err := time.Parse(time.DateOnly, dep_date)
+		dep_date_time, err := time.Parse(time.DateOnly, query.DepDate)
 		if err != nil {
 			return err
 		}
 		args = append(args, dep_date_time)
 	}
-	if arr_date != "" {
+	if query.ArrDate != "" {
 		if q != "" {
 			q += " AND "
 		}
 		q += "departure_date <= ?"
-		arr_date_time, err := time.Parse(time.DateOnly, arr_date)
+		arr_date_time, err := time.Parse(time.DateOnly, query.ArrDate)
 		if err != nil {
 			return err
 		}
@@ -127,9 +134,9 @@ func findTrips(db *gorm.DB, dep_city_id, dep_date, arr_city_id, arr_date string,
 	return nil
 }
 
-func sortTrips(dep_city_id, arr_city_id string, trips_from, trips_to *[]Trip, result *[]FoundTrip) {
-	did, _ := strconv.Atoi(dep_city_id)
-	aid, _ := strconv.Atoi(arr_city_id)
+func sortTrips(query FindTripQuery, trips_from, trips_to *[]Trip, result *[]FoundTrip) {
+	did, _ := strconv.Atoi(query.DepCity)
+	aid, _ := strconv.Atoi(query.ArrCity)
 
 	twoCities := (did != 0 && aid != 0)
 
@@ -175,4 +182,27 @@ func sortTrips(dep_city_id, arr_city_id string, trips_from, trips_to *[]Trip, re
 			}
 		}
 	}
+}
+
+func createTrip(db *gorm.DB, trip *Trip) error {
+	currentTime := time.Now()
+
+	trip.DateEdited = &currentTime
+	trip.DateCreated = &currentTime
+
+	result := db.Model(&Trip{}).Create(&trip)
+	return result.Error
+}
+
+func updateTrip(db *gorm.DB, trip *Trip) error {
+	currentTime := time.Now()
+	trip.DateEdited = &currentTime
+
+	result := db.Save(trip)
+	return result.Error
+}
+
+func deleteTrip(db *gorm.DB, trip *Trip) error {
+	result := db.Delete(&Trip{}, trip.ID)
+	return result.Error
 }
