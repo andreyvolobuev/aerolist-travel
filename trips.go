@@ -26,12 +26,11 @@ func findTrips(db *gorm.DB, query FindTripQuery, trips_from, trips_to *[]Trip) e
 	if query.DepCity != "" {
 		q += "dep_city_id = ?"
 		args = append(args, query.DepCity)
+	} else {
+		q += "dep_city_id != 0"
 	}
 	if query.DepDate != "" {
-		if q != "" {
-			q += " AND "
-		}
-		q += "departure_date >= ?"
+		q += " AND departure_date >= ?"
 		dep_date_time, err := time.Parse(time.DateOnly, query.DepDate)
 		if err != nil {
 			return err
@@ -39,10 +38,7 @@ func findTrips(db *gorm.DB, query FindTripQuery, trips_from, trips_to *[]Trip) e
 		args = append(args, dep_date_time)
 	}
 	if query.ArrDate != "" {
-		if q != "" {
-			q += " AND "
-		}
-		q += "departure_date <= ?"
+		q += " AND departure_date <= ?"
 		arr_date_time, err := time.Parse(time.DateOnly, query.ArrDate)
 		if err != nil {
 			return err
@@ -50,26 +46,24 @@ func findTrips(db *gorm.DB, query FindTripQuery, trips_from, trips_to *[]Trip) e
 		args = append(args, arr_date_time)
 	}
 	var sub_q *gorm.DB
-	if q != "" {
-		sub_q = db.Model(&Trip{}).Distinct("user_id").Where(q, args...)
-	}
+	sub_q = db.Model(&Trip{}).Distinct("user_id").Where(q, args...)
+
 	q = ""
 	args = make([]interface{}, 0)
 	if sub_q != nil {
 		q += "user_id IN (?)"
 		args = append(args, sub_q)
 	}
+	if q != "" {
+		q += " AND "
+	}
 	if query.ArrCity != "" {
-		if q != "" {
-			q += " AND "
-		}
 		q += "arr_city_id = ?"
 		args = append(args, query.ArrCity)
+	} else {
+		q += "arr_city_id != 0"
 	}
 	if query.ArrDate != "" {
-		if q != "" {
-			q += " AND "
-		}
 		q += "departure_date <= ?"
 		arr_date_time, err := time.Parse(time.DateOnly, query.ArrDate)
 		if err != nil {
@@ -78,9 +72,6 @@ func findTrips(db *gorm.DB, query FindTripQuery, trips_from, trips_to *[]Trip) e
 		args = append(args, arr_date_time)
 	}
 	if query.DepDate != "" {
-		if q != "" {
-			q += " AND "
-		}
 		q += "departure_date >= ?"
 		dep_date_time, err := time.Parse(time.DateOnly, query.DepDate)
 		if err != nil {
@@ -89,12 +80,11 @@ func findTrips(db *gorm.DB, query FindTripQuery, trips_from, trips_to *[]Trip) e
 		args = append(args, dep_date_time)
 	}
 	var trips_to_q *gorm.DB
-	if q != "" {
-		trips_to_q = db.Debug().Where(q, args...)
-	}
+	trips_to_q = db.Debug().Where(q, args...)
 	if trips_to_q != nil {
 		trips_to_q.Order("user_id").Find(trips_to)
 	}
+
 	q = ""
 	args = make([]interface{}, 0)
 	if trips_to_q != nil {
@@ -130,6 +120,7 @@ func findTrips(db *gorm.DB, query FindTripQuery, trips_from, trips_to *[]Trip) e
 		}
 		args = append(args, arr_date_time)
 	}
+
 	db.Debug().Where(q, args...).Not(trips_to_q).Order("user_id").Find(trips_from)
 	return nil
 }
