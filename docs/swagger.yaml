@@ -1,0 +1,183 @@
+definitions:
+  main.FoundTrip:
+    properties:
+      fromTrip:
+        $ref: '#/definitions/main.Trip'
+      singleDir:
+        type: boolean
+      toTrip:
+        $ref: '#/definitions/main.Trip'
+    type: object
+  main.Trip:
+    properties:
+      arrCityId:
+        type: integer
+      available:
+        $ref: '#/definitions/main.Visibility'
+      dateCreated:
+        type: string
+      dateEdited:
+        type: string
+      depCityId:
+        type: integer
+      departureDate:
+        type: string
+      distanceKm:
+        type: number
+      id:
+        description: gorm.Model
+        type: integer
+      isVerified:
+        type: boolean
+      text:
+        type: string
+      userId:
+        type: integer
+    type: object
+  main.Visibility:
+    enum:
+    - 0
+    - 1
+    - 5
+    - 10
+    - 15
+    type: integer
+    x-enum-varnames:
+    - VisibilityNone
+    - VisibilityAuthor
+    - VisibilityRequest
+    - VisibilityFriends
+    - VisibilityEverybody
+info:
+  contact: {}
+  description: API for managing trips
+  title: Trips API
+  version: "1.0"
+paths:
+  /:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of trips based on query parameters
+      parameters:
+      - description: Departure City
+        in: query
+        name: depCity
+        type: string
+      - description: Arrival City
+        in: query
+        name: arrCity
+        type: string
+      - description: Departure Date
+        in: query
+        name: depDate
+        type: string
+      - description: Arrival Date
+        in: query
+        name: arrDate
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/main.FoundTrip'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: Get Trips
+      tags:
+      - Trips
+    post:
+      consumes:
+      - application/json
+      description: Create a new trip by providing trip data in the request body
+      parameters:
+      - description: Trip data
+        in: body
+        name: trip
+        required: true
+        schema:
+          $ref: '#/definitions/main.Trip'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.Trip'
+        "400":
+          description: Invalid Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Create a new Trip
+      tags:
+      - Trips
+  /{id}:
+    delete:
+      description: Delete a trip by its ID
+      parameters:
+      - description: Trip ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: ok
+          schema:
+            type: string
+        "400":
+          description: Trip does not exist
+          schema:
+            type: string
+        "500":
+          description: Could not delete Trip
+          schema:
+            type: string
+      summary: Delete a Trip
+      tags:
+      - Trips
+    patch:
+      consumes:
+      - application/json
+      description: Update a trip by providing trip data and ID
+      parameters:
+      - description: Trip ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Updated trip data
+        in: body
+        name: trip
+        required: true
+        schema:
+          $ref: '#/definitions/main.Trip'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.Trip'
+        "400":
+          description: Trip does not exist
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Update an existing Trip
+      tags:
+      - Trips
+swagger: "2.0"

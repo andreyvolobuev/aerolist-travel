@@ -49,7 +49,6 @@ func (c *City) TableName() string {
 
 type Visibility int
 
-// Объявляем константы
 const (
 	VisibilityNone      Visibility = 0
 	VisibilityAuthor    Visibility = 1
