@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/gorilla/schema"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -18,38 +19,44 @@ const (
 	APPLICATION_JSON = "application/json"
 )
 
-func handleGet(w http.ResponseWriter, r *http.Request) {
+var decoder = schema.NewDecoder()
+
+func getDB() *gorm.DB {
 	dsn := "host=localhost user=aerolist password=aerolist dbname=aerolist port=5432"
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		panic("failed to connect database")
 	}
+	return db
+}
+
+func handleGet(w http.ResponseWriter, r *http.Request) {
+	db := getDB()
 
 	var trips_to []Trip
 	var trips_from []Trip
 	var result []FoundTrip
+	var query FindTripQuery
 
-	dep_city := r.URL.Query().Get("dep_city")
-	dep_date := r.URL.Query().Get("dep_date")
-	arr_city := r.URL.Query().Get("arr_city")
-	arr_date := r.URL.Query().Get("arr_date")
+	err := decoder.Decode(&query, r.URL.Query())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 
 	findTrips(
 		db,
-		dep_city,
-		dep_date,
-		arr_city,
-		arr_date,
+		query,
 		&trips_from,
 		&trips_to,
 	)
 	sortTrips(
-		dep_city,
-		arr_city,
+		query,
 		&trips_from,
 		&trips_to,
 		&result,
 	)
+
 	str, err := json.MarshalIndent(&result, "", "    ")
 	if err != nil {
 		log.Fatalf(err.Error())
@@ -58,7 +65,9 @@ func handleGet(w http.ResponseWriter, r *http.Request) {
 }
 
 func handlePost(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "{\"status\": \"post_ok\"}")
+	db := getDB()
+
+	createTrip(db)
 }
 
 func handleDelete(w http.ResponseWriter, r *http.Request) {
@@ -84,5 +93,5 @@ func handleHTTP(w http.ResponseWriter, r *http.Request) {
 func main() {
 	http.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {})
 	http.HandleFunc("/", handleHTTP)
-	http.ListenAndServe("localhost:9000", nil)
+	http.ListenAndServe("localhost:9999", nil)
 }
